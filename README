@@ -1,0 +1,18 @@
+This a little, funny project I've been working on for a few days and I wanted to share it with the community.
+---------------
+I’m very happy with using FlexControl, FRStack, and the Stream Deck XL to control SmartSDR, but I wanted to add some knobs for the most used functions.
+This project is not by any means a competitor of the great Tensy Maestro by KD0RC, and it only works in combination with the API frontend provided by FRStack. I understand there are other options to control SmartSDR or the Flex radio directly, but my goal was to add extra functionality to my existing set-up in a very easy and quick way.
+The project runs on a Mega platform only because of the large use of strings and because of the number of interrupt lines need to control the encoders.
+The hardware side of the project is very simple. It requires an I2C display and, in my configuration, 4 encoders with button. The communication between the Mega and FRStack happens over ethernet, therefore a standard Arduino Ethernet board is required.
+The logic is very simple, the encoders are linked to FRStack’s API calls. For each rotation or push, the relevant API call is sent over the network, and voila, you can control the volume, NR, or NB levels with knobs.
+Please be aware that FRStack must be configured to accept connections over the network. How to do it is explained in the FRStack API help.
+Each rotator has associated 3 functions. Functions are selected by a single push of the encoder switch.
+For each function, a long press of the switch set the function value to its default.
+A double press enables/disables that function (Example: mutes the volume or turns NR on and off)
+The following table describes the encoders and switches functions the way I programmed them.
+I hope you will enjoy The Maestrino.
+
+73, Max
+
+
+ 
