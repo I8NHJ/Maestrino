@@ -1,5 +1,5 @@
-#define CODE_VERSION "V1.2"
-#define CODE_DATE "2023.02.20"
+#define CODE_VERSION "V1.3"
+#define CODE_DATE "2023.03.03"
 #define CALL_SIGN "N5NHJ"
 
 // #define DEBUG

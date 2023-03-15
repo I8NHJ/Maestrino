@@ -1,0 +1,8 @@
+Libraries required to run Maestrino
+
+https://github.com/adafruit/Adafruit-GFX-Library W/DEP
+https://github.com/mickey9801/ButtonFever
+https://github.com/lesterlo/Notched-Shaft-Encoder W/DEP
+https://github.com/adafruit/Adafruit_SH110X
+https://github.com/adafruit/Adafruit_SSD1306
+
