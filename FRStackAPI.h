@@ -76,9 +76,9 @@
   FRStackCmdTogleParameter[7] = 2;
   
   FRStackCmdString[8] = "/api/Radio/CWPITCH?param=";
-  FRStackCmdDefaultValue[8] = 410;
+  FRStackCmdDefaultValue[8] = 450;
   FRStackCmdTogleString[8] = "/api/ActiveSlice/CWSIDETONE?param=";
-  FRStackCmdLabel[8] = "CW Pitch";
+  FRStackCmdLabel[8] = "CWTone";
   FRStackCmdLowLimit[8] = 300;
   FRStackCmdHighLimit[8] = 1000;
   FRStackCmdSteps[8] = 1;
@@ -107,7 +107,7 @@
   FRStackCmdString[11] = "/api/Radio/CWDELAY?param=";
   FRStackCmdDefaultValue[11] = 250;
   FRStackCmdTogleString[11] = "/api/Radio/CWBREAKIN?param=";
-  FRStackCmdLabel[11] = "CW Delay";
+  FRStackCmdLabel[11] = "CW Del";
   FRStackCmdLowLimit[11] = 0;
   FRStackCmdHighLimit[11] = 1000;
   FRStackCmdSteps[11] = 1;
