@@ -95,13 +95,23 @@
   FRStackCmdSteps[9] = 25;
   FRStackCmdTogleParameter[9] = -32768;
   
-  FRStackCmdString[10] = "/api/Radio/Slice?param=";
+  // FRStackCmdString[10] = "/api/Radio/Slice?param=";
+  // FRStackCmdDefaultValue[10] = 0;
+  // FRStackCmdTogleString[10] = "/api/Radio/Slice?param=CREATE";
+  // FRStackCmdLabel[10] = "A/B";
+  // FRStackCmdLowLimit[10] = 0;
+  // FRStackCmdHighLimit[10] = 7;
+  // FRStackCmdSteps[10] = 1;
+  // FRStackCmdTogleParameter[10] = -32768;
+
+    
+  FRStackCmdString[10] = "/api/ActiveSlice/RFGAIN?param=";
   FRStackCmdDefaultValue[10] = 0;
-  FRStackCmdTogleString[10] = "/api/Radio/Slice?param=CREATE";
-  FRStackCmdLabel[10] = "A/B";
-  FRStackCmdLowLimit[10] = 0;
-  FRStackCmdHighLimit[10] = 7;
-  FRStackCmdSteps[10] = 1;
+  FRStackCmdTogleString[10] = "/api/ActiveSlice/RFGAIN?param==down";
+  FRStackCmdLabel[10] = "RFGAIN";
+  FRStackCmdLowLimit[10] = -8;
+  FRStackCmdHighLimit[10] = +32;
+  FRStackCmdSteps[10] = 8;
   FRStackCmdTogleParameter[10] = -32768;
 
   FRStackCmdString[11] = "/api/Radio/CWDELAY?param=";
