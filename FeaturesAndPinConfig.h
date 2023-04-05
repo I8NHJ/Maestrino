@@ -1,20 +1,22 @@
+const byte ENCODERS_STEPS = 4; //How many edges for 1 pulse
+const byte EthCSPin = 10;   // You can use Ethernet.init(pin) to configure the CS pin. Most Arduino boards use 10
 #ifdef MEGA
   // ENCODERS pins definition - MEGA
-  const int ENCODER_1_S1_PIN = 2;  // Interrupt
-  const int ENCODER_1_S2_PIN = 4;  // No Interrupt
-  const int ENCODER_2_S1_PIN = 3;  // Interrupt
-  const int ENCODER_2_S2_PIN = 5;  // No Interrupt
-  const int ENCODER_3_S1_PIN = 19; // Interrupt 18
-  const int ENCODER_3_S2_PIN = 17; // No Interrupt 16
-  const int ENCODER_4_S1_PIN = 18; // Interrupt
-  const int ENCODER_4_S2_PIN = 16; // No Interrupt
+  const byte ENCODER_1_S1_PIN = 2;  // Interrupt
+  const byte ENCODER_1_S2_PIN = 4;  // No Interrupt
+  const byte ENCODER_2_S1_PIN = 3;  // Interrupt
+  const byte ENCODER_2_S2_PIN = 5;  // No Interrupt
+  const byte ENCODER_3_S1_PIN = 19; // Interrupt 18
+  const byte ENCODER_3_S2_PIN = 17; // No Interrupt 16
+  const byte ENCODER_4_S1_PIN = 18; // Interrupt
+  const byte ENCODER_4_S2_PIN = 16; // No Interrupt
 
   // ENCODER Buttons pin definition - MEGA
   // int encBtnPin[4];
-  const int enc1BtnPin = 6;   // Push button on encoder 1
-  const int enc2BtnPin = 7;  // Push button on encoder 2
-  const int enc3BtnPin = 15;  // Push button on encoder 3
-  const int enc4BtnPin = 14;   // Push button on encoder 4
+  const byte enc1BtnPin = 6;   // Push button on encoder 1
+  const byte enc2BtnPin = 7;   // Push button on encoder 2
+  const byte enc3BtnPin = 15;  // Push button on encoder 3
+  const byte enc4BtnPin = 14;  // Push button on encoder 4
 #endif
 
 #ifdef DUE

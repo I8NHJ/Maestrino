@@ -1,6 +1,7 @@
 #define CODE_VERSION "V1.4"
 #define CODE_DATE "2023.04.02"
 #define CALL_SIGN "N5NHJ"
+#define ENCODERS 4 // Define the number of encoder in your project, 1 to 4
 
 // #define DEBUG
 
@@ -10,13 +11,17 @@
 // #define DISPLAY_OLED091_I2C //0.91 OLED I2C Display Module IIC 0.91 128x32 inch I2C SSD1306 LED DC Display Module Blue I2C LCD 128x32 Screen Driver Compatible with OLED 3.3V~5V
 #define DISPLAY_OLED130_I2C //HiLetgo 1.3" IIC I2C Serial 128x64 SSH1106 SSD1306 OLED LCD Display LCD Module for Arduino AVR PIC STM32
 
+// Generic libraries
 #include <SPI.h>
 #include <Wire.h>
 #include <Ethernet.h>
 #include <Adafruit_GFX.h>
+
 #include <BfButton.h>
 #include <NSEncoder.h>
-#include "PinConfig.h"
+
+#include "FeaturesAndPinConfig.h"
+#include "EthConfig.h"
 
 // OLED Display set-up
 // The pins for I2C are defined by the Wire-library.
@@ -51,45 +56,49 @@ const int medText = 2;
 const int bigText = 3;
 String oledMsg = "";
 
-#include "Ethernet.h"
 EthernetClient client;             // Initialize the Ethernet client library
 
-// Create ENCODER Buttons
-BfButton enc1Btn(BfButton::STANDALONE_DIGITAL, enc1BtnPin, true, LOW);
-BfButton enc2Btn(BfButton::STANDALONE_DIGITAL, enc2BtnPin, true, LOW);
-BfButton enc3Btn(BfButton::STANDALONE_DIGITAL, enc3BtnPin, true, LOW);
-BfButton enc4Btn(BfButton::STANDALONE_DIGITAL, enc4BtnPin, true, LOW);
+// Create Encoders,  Encoder Buttons, and define push buttons status
+BfButton enc1Btn(BfButton::STANDALONE_DIGITAL, enc1BtnPin, true, LOW); // 1 encoder
+NSEncoder enc1(ENCODER_1_S1_PIN, ENCODER_1_S2_PIN, ENCODERS_STEPS);
+int enc1BtnStatus = 1;
+#ifdef ENCODERS > 1 
+  BfButton enc2Btn(BfButton::STANDALONE_DIGITAL, enc2BtnPin, true, LOW); // 2 encoders
+  NSEncoder enc2(ENCODER_2_S1_PIN, ENCODER_2_S2_PIN, ENCODERS_STEPS);
+  int enc2BtnStatus = 1;
+#endif
+#ifdef ENCODERS > 2
+  BfButton enc3Btn(BfButton::STANDALONE_DIGITAL, enc3BtnPin, true, LOW); // 3 encoders
+  NSEncoder enc3(ENCODER_3_S1_PIN, ENCODER_3_S2_PIN, ENCODERS_STEPS);
+  int enc3BtnStatus = 1;
+#endif
+#ifdef ENCODERS > 3
+  BfButton enc4Btn(BfButton::STANDALONE_DIGITAL, enc4BtnPin, true, LOW); // 4 encoders
+  NSEncoder enc4(ENCODER_4_S1_PIN, ENCODER_4_S2_PIN, ENCODERS_STEPS);
+  int enc4BtnStatus = 1;
+#endif
 
-// Create ENCODERS
-NSEncoder enc1(ENCODER_1_S1_PIN, ENCODER_1_S2_PIN, 4);
-NSEncoder enc2(ENCODER_2_S1_PIN, ENCODER_2_S2_PIN, 4);
-NSEncoder enc3(ENCODER_3_S1_PIN, ENCODER_3_S2_PIN, 4);
-NSEncoder enc4(ENCODER_4_S1_PIN, ENCODER_4_S2_PIN, 4);
+const unsigned int ArraysSize = ENCODERS * 3; // FRStack arrays size = Number of encoders for 3 functions each
 
 // Define FRStack command strings for buttons and encoders
-String FRStackCmdString[12];
-int    FRStackCmdDefaultValue[12];
-int    FRStackCmdLowLimit[12];
-int    FRStackCmdHighLimit[12];
-int    FRStackCmdSteps[12];
-String FRStackCmdLabel[12];
-String FRStackCmdTogleString[12];
-int    FRStackCmdTogleParameter[12];
-int    FRStackLastValue[12];
+char * FRStackCmdString[ArraysSize];
+// String FRStackCmdString[ArraysSize];
+int    FRStackCmdDefaultValue[ArraysSize];
+int    FRStackCmdLowLimit[ArraysSize];
+int    FRStackCmdHighLimit[ArraysSize];
+int    FRStackCmdSteps[ArraysSize];
+char * FRStackCmdLabel[ArraysSize];
+char * FRStackCmdTogleString[ArraysSize];
+int    FRStackCmdTogleParameter[ArraysSize];
+int    FRStackLastValue[ArraysSize];
 
 int msgIndex = 0;
-int msgIndexTable [12] = {11,12,13,21,22,23,31,32,33,41,42,43};
+const int msgIndexTable [12] PROGMEM = {11,12,13,21,22,23,31,32,33,41,42,43};
 
-String httpPre = "GET ";
-String httpPos = " HTTP/1.1";
+const String httpPre = "GET ";
+const String httpPos = " HTTP/1.1";
 String httpHost = "";
 String FRStackMsg = "";
-
-// Define push buttons status
-int enc1BtnStatus = 1;
-int enc2BtnStatus = 1;
-int enc3BtnStatus = 1;
-int enc4BtnStatus = 1;
 
 int counter = 0;
 int encCounter = 0;
@@ -111,7 +120,7 @@ void setup() {
 
  #include "FRStackAPI.h" 
   
-  for (int i = 0; i < 12; i++) {FRStackLastValue[i] = FRStackCmdDefaultValue[i];}
+  for (int i = 0; i < ArraysSize; i++) {FRStackLastValue[i] = FRStackCmdDefaultValue[i];}
 
   httpHost = "Host: " + String(FRStackPC[0]) + "." + String(FRStackPC[1]) + "." + String(FRStackPC[2]) + "." + String(FRStackPC[3]);
   
@@ -143,8 +152,7 @@ void setup() {
 
   oled.setTextColor(1,0);
 
-  // You can use Ethernet.init(pin) to configure the CS pin
-  Ethernet.init(10);  // Most Arduino shields
+  Ethernet.init(EthCSPin);
   
   oledShow("INIT ETH", 0, smallText, firstLine, showAttributeFalse);
 
@@ -177,7 +185,7 @@ void setup() {
   // give the Ethernet shield a second to initialize:
   delay(1000);
   oledShow("connecting FRStackPC", 0, smallText, firstLine, showAttributeFalse);
-  delay(1000);
+  delay(1000);  //give some time to look at the display actions
   
   // if you get a connection, report back via OLED:
   if (client.connect(FRStackPC, FRStackPort)) {
@@ -200,18 +208,21 @@ void setup() {
   enc1Btn.onPress(pressHandler1)
     .onDoublePress(pressHandler1)      // default timeout
     .onPressFor(pressHandler1, 1000);  // custom timeout for 1 second
-
+  #ifdef ENCODERS > 1
   enc2Btn.onPress(pressHandler2)
     .onDoublePress(pressHandler2)      // default timeout
     .onPressFor(pressHandler2, 1000);  // custom timeout for 1 second
-
+  #endif
+  #ifdef ENCODERS > 2
   enc3Btn.onPress(pressHandler3)
     .onDoublePress(pressHandler3)      // default timeout
     .onPressFor(pressHandler3, 1000);  // custom timeout for 1 second
-  
+  #endif
+  #ifdef ENCODERS > 3
   enc4Btn.onPress(pressHandler4)
     .onDoublePress(pressHandler4)      // default timeout
     .onPressFor(pressHandler4, 1000);  // custom timeout for 1 second
+  #endif
 }
 // End setup()
 
@@ -219,13 +230,19 @@ void loop() {
 
   //Wait for button press to execute commands
   enc1Btn.read();
-  enc2Btn.read();
-  enc3Btn.read();
-  enc4Btn.read();
+  #ifdef ENCODERS > 1
+    enc2Btn.read();
+  #endif
+  #ifdef ENCODERS > 2
+    enc3Btn.read();
+  #endif
+  #ifdef ENCODERS > 1
+    enc4Btn.read();
+  #endif
 
   // Check for encoders movement
   encChanged = false;
-  for (int i = 1; i < 5; i++) {
+  for (int i = 1; i < (ENCODERS+1) ; i++) {
     switch (i) {
       case 1:
         if((counter = enc1.get_diffPosition()) != 0) {
@@ -276,7 +293,7 @@ void loop() {
 
 // Search Message index from Encoder, Push Status
 int searchMesageIndex(int EncoderID, int EncoderPush) {
-  for (int i = 0; i < 12; i++)
+  for (int i = 0; i < ArraysSize; i++)
   {
     if ((EncoderID*10 + EncoderPush) == msgIndexTable[i]) {
       return i;
@@ -308,7 +325,7 @@ void sendFRStackMsg (int messageType, int messageIndex, int functionValue) {
     Serial.println(FRStackMsg);
   #endif
   client.println(httpHost);
-  client.println("Connection: close");
+  client.println(F("Connection: close"));
   client.println();
   client.flush();
 }
