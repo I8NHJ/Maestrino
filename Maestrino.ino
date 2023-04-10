@@ -31,22 +31,22 @@
 // On an arduino DUE:
 // On an arduino LEONARDO:
 #ifdef DISPLAY_OLED091_I2C
-#include <Adafruit_SSD1306.h>  // Declaration and libraries for an SSD1306 display connected to I2C (SDA, SCL pins)
-#define SCREEN_WIDTH 128       // OLED display width, in pixels
-#define SCREEN_HEIGHT 32       // OLED display height, in pixels
-#define OLED_RESET -1          // Reset pin # (or -1 if sharing Arduino reset pin)
-#define SCREEN_ADDRESS 0x3C    // See datasheet for Address; 0x3D for 128x64, 0x3C for 128x32
-#define SSD1306_NO_SPLASH
-#endif
+  #include <Adafruit_SSD1306.h>  // Declaration and libraries for an SSD1306 display connected to I2C (SDA, SCL pins)
+  #define SCREEN_WIDTH 128       // OLED display width, in pixels
+  #define SCREEN_HEIGHT 32       // OLED display height, in pixels
+  #define OLED_RESET -1          // Reset pin # (or -1 if sharing Arduino reset pin)
+  #define SCREEN_ADDRESS 0x3C    // See datasheet for Address; 0x3D for 128x64, 0x3C for 128x32
+  #define SSD1306_NO_SPLASH
+#endif // DISPLAY_OLED091_I2C
 
 #ifdef DISPLAY_OLED130_I2C
-#include <Adafruit_SH110X.h>  // Declaration for an SSH1106 display connected to I2C (SDA, SCL pins)
-#define SCREEN_WIDTH 128      // OLED display width, in pixels
-#define SCREEN_HEIGHT 64      // OLED display height, in pixels
-#define OLED_RESET -1         // Reset pin # (or -1 if sharing Arduino reset pin)
-#define SCREEN_ADDRESS 0x3c   //< See datasheet for Address; 0x3D for 128x64, 0x3C for 128x32
-#define SH110X_NO_SPLASH
-#endif
+  #include <Adafruit_SH110X.h>  // Declaration for an SSH1106 display connected to I2C (SDA, SCL pins)
+  #define SCREEN_WIDTH 128      // OLED display width, in pixels
+  #define SCREEN_HEIGHT 64      // OLED display height, in pixels
+  #define OLED_RESET -1         // Reset pin # (or -1 if sharing Arduino reset pin)
+  #define SCREEN_ADDRESS 0x3c   //< See datasheet for Address; 0x3D for 128x64, 0x3C for 128x32
+  #define SH110X_NO_SPLASH
+#endif // DISPLAY_OLED130_I2C
 
 //Should these became Enumerators?
 const bool showAttributeTrue = true;
@@ -68,27 +68,28 @@ Encoder enc1(ENCODER_1_S1_PIN, ENCODER_1_S2_PIN);
 // NSEncoder enc1(ENCODER_1_S1_PIN, ENCODER_1_S2_PIN, ENCODERS_STEPS);
 int enc1BtnStatus = 1;
 #if (ENCODERS > 1)
-BfButton enc2Btn(BfButton::STANDALONE_DIGITAL, enc2BtnPin, true, LOW);  // 2 encoders
-Encoder enc2(ENCODER_2_S1_PIN, ENCODER_2_S2_PIN);
-//  NSEncoder enc2(ENCODER_2_S1_PIN, ENCODER_2_S2_PIN, ENCODERS_STEPS);
-int enc2BtnStatus = 1;
+  BfButton enc2Btn(BfButton::STANDALONE_DIGITAL, enc2BtnPin, true, LOW);  // 2 encoders
+  Encoder enc2(ENCODER_2_S1_PIN, ENCODER_2_S2_PIN);
+  //  NSEncoder enc2(ENCODER_2_S1_PIN, ENCODER_2_S2_PIN, ENCODERS_STEPS);
+  int enc2BtnStatus = 1;
 #endif
 #if (ENCODERS > 2)
-BfButton enc3Btn(BfButton::STANDALONE_DIGITAL, enc3BtnPin, true, LOW);  // 3 encoders
-Encoder enc3(ENCODER_3_S1_PIN, ENCODER_3_S2_PIN);
-//  NSEncoder enc3(ENCODER_3_S1_PIN, ENCODER_3_S2_PIN, ENCODERS_STEPS);
-int enc3BtnStatus = 1;
+  BfButton enc3Btn(BfButton::STANDALONE_DIGITAL, enc3BtnPin, true, LOW);  // 3 encoders
+  Encoder enc3(ENCODER_3_S1_PIN, ENCODER_3_S2_PIN);
+  //  NSEncoder enc3(ENCODER_3_S1_PIN, ENCODER_3_S2_PIN, ENCODERS_STEPS);
+  int enc3BtnStatus = 1;
 #endif
 #if (ENCODERS > 3)
-BfButton enc4Btn(BfButton::STANDALONE_DIGITAL, enc4BtnPin, true, LOW);  // 4 encoders
-Encoder enc4(ENCODER_4_S1_PIN, ENCODER_4_S2_PIN);
-//  NSEncoder enc4(ENCODER_4_S1_PIN, ENCODER_4_S2_PIN, ENCODERS_STEPS);
-int enc4BtnStatus = 1;
+  BfButton enc4Btn(BfButton::STANDALONE_DIGITAL, enc4BtnPin, true, LOW);  // 4 encoders
+  Encoder enc4(ENCODER_4_S1_PIN, ENCODER_4_S2_PIN);
+  //  NSEncoder enc4(ENCODER_4_S1_PIN, ENCODER_4_S2_PIN, ENCODERS_STEPS);
+  int enc4BtnStatus = 1;
 #endif
 
 const byte ArraysSize = ENCODERS * 3;  // FRStack arrays size = Number of encoders for 3 functions each
 
 // Define FRStack command strings for buttons and encoders
+// Come si definische un Array di puntatori?
 char *FRStackCmdString[ArraysSize];
 // String FRStackCmdString[ArraysSize];
 int FRStackCmdDefaultValue[ArraysSize];
@@ -161,7 +162,7 @@ void setup() {
     Serial.println(F("OLED Initiated"));
 #endif
   }
-#endif DISPLAY_OLED091_I2C
+#endif //DISPLAY_OLED091_I2C
 
 #ifdef DISPLAY_OLED130_I2C
   if (!oled.begin(SCREEN_ADDRESS, false)) {
@@ -175,7 +176,7 @@ void setup() {
     Serial.println(F("OLED Initiated"));
 #endif
   }
-#endif DISPLAY_OLED130_I2C
+#endif //DISPLAY_OLED130_I2C
 
   oled.setTextColor(1, 0);
 
@@ -239,17 +240,17 @@ void setup() {
   enc2Btn.onPress(pressHandler2)
     .onDoublePress(pressHandler2)      // default timeout
     .onPressFor(pressHandler2, 1000);  // custom timeout for 1 second
-#endif ENCODERS > 1
+#endif // ENCODERS > 1
 #if (ENCODERS > 2)
   enc3Btn.onPress(pressHandler3)
     .onDoublePress(pressHandler3)      // default timeout
     .onPressFor(pressHandler3, 1000);  // custom timeout for 1 second
-#endif ENCODERS > 2
+#endif // ENCODERS > 2
 #if (ENCODERS > 3)
   enc4Btn.onPress(pressHandler4)
     .onDoublePress(pressHandler4)      // default timeout
     .onPressFor(pressHandler4, 1000);  // custom timeout for 1 second
-#endif ENCODERS > 3
+#endif // ENCODERS > 3
 }
 // End setup()
 
