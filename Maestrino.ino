@@ -371,9 +371,9 @@ void sendFRStackMsg(int messageType, int messageIndex, int functionValue) {
 
 //Display Functions on OLED
 //void oledShow(String messageText, int functionValue, int textSize, int lineNumber, bool showAttribute) {
-void oledShow(char *messageText, int functionValue, int textSize, int lineNumber, bool showAttribute) {
+void oledShow(const char *messageText, int functionValue, int textSize, int lineNumber, bool showAttribute) {
   oled.clearDisplay();  // Always do this everytime there is something to show
-
+char PROGMEM messageDisplay [30];
 #ifdef DISPLAY_OLED091_I2C
   int CursorY = 0;
 #endif
@@ -383,7 +383,7 @@ void oledShow(char *messageText, int functionValue, int textSize, int lineNumber
   oled.setCursor(11, CursorY);
   oled.setTextSize(2);
   oled.print(F("MAESTRINO"));
-
+strcpy_P(messageDisplay, messageText);
   if (functionValue == -32768) {
     strcat(messageText, " Tog");
     //   messageText = messageText + " Tog";
@@ -476,8 +476,8 @@ void pressHandler2(BfButton *enc2Btn, BfButton::press_pattern_t pattern) {
       oledShow(FRStackCmdLabel[msgIndex], FRStackLastValue[msgIndex], medText, firstLine, showAttributeTrue);
       break;
   }
-}  //End pressHandler2
-#endif
+} 
+#endif  //End pressHandler2
 
 #if ENCODERS > 2
 void pressHandler3(BfButton *enc3Btn, BfButton::press_pattern_t pattern) {
