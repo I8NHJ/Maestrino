@@ -8,7 +8,7 @@ const char CALL_SIGN [] = "N5NHJ";
 // #define DUE
 // #define LEONARDO_ETH
 
-// #define DEBUG
+#define DEBUG
 
 // #define DISPLAY_OLED091_I2C //0.91 OLED I2C Display Module IIC 0.91 128x32 inch I2C SSD1306 LED DC Display Module Blue I2C LCD 128x32 Screen Driver Compatible with OLED 3.3V~5V
 #define DISPLAY_OLED130_I2C  //HiLetgo 1.3" IIC I2C Serial 128x64 SSH1106 SSD1306 OLED LCD Display LCD Module for Arduino AVR PIC STM32
@@ -94,11 +94,11 @@ int FRStackLastValue[ArraysSize];
 
 byte msgIndex = 0;
 #if (ENCODERS == 1)
-const byte msgIndexTable[3] PROGMEM = { byte(11), byte(12), byte(13) };
+const byte msgIndexTable[3] = { byte(11), byte(12), byte(13) };
 #elif (ENCODERS == 2)
-const byte msgIndexTable[6] PROGMEM = { 11, 12, 13, 21, 22, 23 };
+const byte msgIndexTable[6] = { byte(11), byte(12), byte(13), byte(21), byte(22), byte(23) };
 #elif (ENCODERS == 3)
-const byte msgIndexTable[9] PROGMEM = { 11, 12, 13, 21, 22, 23, 31, 32, 33 };
+const byte msgIndexTable[9]  = { byte(11), byte(12), byte(13), byte(21), byte(22), byte(23), byte(31), byte(32), byte(33) };
 #else
 const byte msgIndexTable[12] = { byte(11), byte(12), byte(13), byte(21), byte(22), byte(23), byte(31), byte(32), byte(33), byte(41), byte(42), byte(43) };
 #endif
@@ -106,9 +106,9 @@ const byte msgIndexTable[12] = { byte(11), byte(12), byte(13), byte(21), byte(22
 const String httpPre = "GET ";
 const String httpPos = " HTTP/1.1";
 char httpHost[] = "Host: www.xxx.yyy.zzz";
-String FRStackMsg = "";
+// String FRStackMsg = "";
 
-int counter = 0;  // can those be byte?
+int counter = 0;  
 int encCounter = 0;
 int encValue = 0;
 bool encChanged = false;
@@ -130,7 +130,7 @@ void setup() {
 
 for (byte i = 0; i < ArraysSize; i++) { FRStackLastValue[i] = FRStackCmdDefaultValue[i]; }  // Init actual values from default
 
-strcpy(httpHost, "Host: ");  //To be tested !
+strcpy(httpHost, "Host: "); 
 strcat(httpHost, (String(FRStackPC[0]) + "." + String(FRStackPC[1]) + "." + String(FRStackPC[2]) + "." + String(FRStackPC[3])).c_str());
 
 #ifdef DISPLAY_OLED091_I2C
@@ -189,7 +189,7 @@ strcat(httpHost, (String(FRStackPC[0]) + "." + String(FRStackPC[1]) + "." + Stri
     // try to configure using IP address instead of DHCP:
     Ethernet.begin(mac, myIP, myDns, myGateway);
   } else {
-    oledShow((String(myIP[0]) + "." + String(myIP[1]) + "." + String(myIP[2]) + "." + String(myIP[3])).c_str(), 0, smallText, firstLine, showAttributeFalse);
+    //oledShow((const char*) (String(myIP[0]) + "." + String(myIP[1]) + "." + String(myIP[2]) + "." + String(myIP[3])).c_str(), 0, smallText, firstLine, showAttributeFalse); 
   }
 
   // give the Ethernet shield a second to initialize:
@@ -199,7 +199,7 @@ strcat(httpHost, (String(FRStackPC[0]) + "." + String(FRStackPC[1]) + "." + Stri
 
   // if you get a connection, report back via OLED:
   if (client.connect(FRStackPC, FRStackPort)) {
-    oledShow(httpHost, 0, smallText, firstLine, showAttributeFalse);
+    // oledShow(httpHost, 0, smallText, firstLine, showAttributeFalse);
     delay(500);
     // Init some FRStack parameters to their default values
     oledShow((const char*) F("Set default values"), 0, smallText, firstLine, showAttributeFalse);
@@ -343,6 +343,7 @@ void sendFRStackMsg(byte messageType, byte messageIndex, int functionValue) {
   char clientMsg [50] PROGMEM = "GET ";
   if (messageType == 0) {
     strcat (clientMsg, FRStackCmdString[messageIndex]); //Standard message
+    strcat (clientMsg, String(functionValue).c_str());
     //FRStackMsg = (httpPre + FRStackCmdString[messageIndex] + String(functionValue) + httpPos);
   }
   if (messageType == 1) {           //Togle message
