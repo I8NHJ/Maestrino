@@ -1,6 +1,6 @@
-const char CODE_VERSION[] = "V2.0";
-const char CODE_DATE[] = "2023.04.10";
-const char CALL_SIGN [] = "N5NHJ";
+const char CODE_VERSION[5] = "V2.1";
+const char CODE_DATE[11] = "2023.04.13";
+const char CALL_SIGN[6] = "N5NHJ";
 
 #define ENCODERS 4  // Define the number of encoder in your project, 1 to 4
 
@@ -8,7 +8,7 @@ const char CALL_SIGN [] = "N5NHJ";
 // #define DUE
 // #define LEONARDO_ETH
 
-#define DEBUG
+// #define DEBUG
 
 // #define DISPLAY_OLED091_I2C //0.91 OLED I2C Display Module IIC 0.91 128x32 inch I2C SSD1306 LED DC Display Module Blue I2C LCD 128x32 Screen Driver Compatible with OLED 3.3V~5V
 #define DISPLAY_OLED130_I2C  //HiLetgo 1.3" IIC I2C Serial 128x64 SSH1106 SSD1306 OLED LCD Display LCD Module for Arduino AVR PIC STM32
@@ -19,8 +19,9 @@ const char CALL_SIGN [] = "N5NHJ";
 #include <Ethernet.h>
 #include <Adafruit_GFX.h>
 
-#include <BfButton.h>
+#define ENCODER_OPTIMIZE_INTERRUPTS
 #include <Encoder.h>
+#include <BfButton.h>
 //#include <NSEncoder.h>
 
 #include "FeaturesAndPinConfig.h"
@@ -30,7 +31,7 @@ const char CALL_SIGN [] = "N5NHJ";
 // The pins for I2C are defined by the Wire-library.
 // On an arduino MEGA 2560: 20(SDA), 21(SCL)
 // On an arduino DUE:
-// On an arduino LEONARDO:
+// On an arduino LEONARDO_ETH:
 #ifdef DISPLAY_OLED091_I2C
   #include <Adafruit_SSD1306.h>  // Declaration and libraries for an SSD1306 display connected to I2C (SDA, SCL pins)
   #define SCREEN_WIDTH 128       // OLED display width, in pixels
@@ -49,9 +50,11 @@ const char CALL_SIGN [] = "N5NHJ";
   #define SH110X_NO_SPLASH
 #endif // DISPLAY_OLED130_I2C
 
-enum showAttribute {showAttributeTrue, showAttributeFalse};
-enum displayLines {firstLine, secondLine,thirdLine, forthLine};
-enum textSize {smallText, medText, bigText};
+enum showAttribute {showAttributeFalse, showAttributeTrue};
+enum displayLines {firstLine, secondLine, thirdLine, forthLine};
+const byte smallText = 1;
+const byte medText = 2;
+const byte bigText = 3;
 
 EthernetClient client;  // Initialize the Ethernet client library
 
@@ -94,19 +97,17 @@ int FRStackLastValue[ArraysSize];
 
 byte msgIndex = 0;
 #if (ENCODERS == 1)
-const byte msgIndexTable[3] = { byte(11), byte(12), byte(13) };
-#elif (ENCODERS == 2)
-const byte msgIndexTable[6] = { byte(11), byte(12), byte(13), byte(21), byte(22), byte(23) };
-#elif (ENCODERS == 3)
-const byte msgIndexTable[9]  = { byte(11), byte(12), byte(13), byte(21), byte(22), byte(23), byte(31), byte(32), byte(33) };
-#else
-const byte msgIndexTable[12] = { byte(11), byte(12), byte(13), byte(21), byte(22), byte(23), byte(31), byte(32), byte(33), byte(41), byte(42), byte(43) };
+  const byte msgIndexTable[3] = { byte(11), byte(12), byte(13) };
+  #elif (ENCODERS == 2)
+    const byte msgIndexTable[6] = { byte(11), byte(12), byte(13), byte(21), byte(22), byte(23) };
+  #elif (ENCODERS == 3)
+    const byte msgIndexTable[9]  = { byte(11), byte(12), byte(13), byte(21), byte(22), byte(23), byte(31), byte(32), byte(33) };
+  #elif (ENCODERS == 4)
+    const byte msgIndexTable[12] = { byte(11), byte(12), byte(13), byte(21), byte(22), byte(23), byte(31), byte(32), byte(33), byte(41), byte(42), byte(43) };
 #endif
 
-const String httpPre = "GET ";
-const String httpPos = " HTTP/1.1";
-char httpHost[] = "Host: www.xxx.yyy.zzz";
-// String FRStackMsg = "";
+char showBuffer[31];
+char httpHost[22]="Host: ";
 
 int counter = 0;  
 int encCounter = 0;
@@ -114,204 +115,231 @@ int encValue = 0;
 bool encChanged = false;
 
 #ifdef DISPLAY_OLED091_I2C
-Adafruit_SSD1306 oled(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);  // Define and create the SSD1306 display connected to I2C (SDA, SCL pins)
+  Adafruit_SSD1306 oled(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);  // Define and create the SSD1306 display connected to I2C (SDA, SCL pins)
 #endif
 
 #ifdef DISPLAY_OLED130_I2C
-Adafruit_SH1106G oled = Adafruit_SH1106G(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);  // Define and create the SSH11X display connected to I2C (SDA, SCL pins)
+  Adafruit_SH1106G oled = Adafruit_SH1106G(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);  // Define and create the SSH11X display connected to I2C (SDA, SCL pins)
 #endif
 
 void setup() {
-#ifdef DEBUG
-  Serial.begin(9600);
-#endif
+  #ifdef DEBUG
+    Serial.begin(9600);
+    Serial.println(F("\r\n---"));
+  #endif
 
-#include "FRStackAPI.h"
+  #include "FRStackAPI.h"
 
-for (byte i = 0; i < ArraysSize; i++) { FRStackLastValue[i] = FRStackCmdDefaultValue[i]; }  // Init actual values from default
+  for (byte i = 0; i < ArraysSize; i++) { FRStackLastValue[i] = FRStackCmdDefaultValue[i]; }  // Init actual values from default
 
-strcpy(httpHost, "Host: "); 
-strcat(httpHost, (String(FRStackPC[0]) + "." + String(FRStackPC[1]) + "." + String(FRStackPC[2]) + "." + String(FRStackPC[3])).c_str());
+  // strcpy(httpHost, "Host: "); 
+  strcat(httpHost, (String(FRStackPC[0]) + "." + String(FRStackPC[1]) + "." + String(FRStackPC[2]) + "." + String(FRStackPC[3])).c_str());
+  #ifdef DEBUG
+    Serial.print(httpHost);
+    Serial.print(F("\t lenght:"));
+    Serial.println(String(strlen(httpHost)));     
+  #endif
 
-#ifdef DISPLAY_OLED091_I2C
-  if (!oled.begin(SSD1306_SWITCHCAPVCC, SCREEN_ADDRESS)) {
-#ifdef DEBUG
-    Serial.println(F("SSD1306 allocation failed"));
-#endif
+  #ifdef DISPLAY_OLED091_I2C
+    if (!oled.begin(SSD1306_SWITCHCAPVCC, SCREEN_ADDRESS)) {
+      #ifdef DEBUG
+        Serial.println(F("SSD1306 allocation failed"));
+      #endif
     for (;;)
-      ;  // Don't proceed, loop forever
-  } else {
-#ifdef DEBUG
-    Serial.println(F("OLED Initiated"));
-#endif
-  }
-#endif //DISPLAY_OLED091_I2C
+    ;  // Don't proceed, loop forever
+    }
+    else
+    {
+    #ifdef DEBUG
+      Serial.println(F("OLED091 Initiated"));
+    #endif
+    }
+  #endif //DISPLAY_OLED091_I2C
 
-#ifdef DISPLAY_OLED130_I2C
-  if (!oled.begin(SCREEN_ADDRESS, false)) {
-#ifdef DEBUG
-    Serial.println(F("SH1106 allocation failed"));
-#endif
-    for (;;)
+  #ifdef DISPLAY_OLED130_I2C
+    if (!oled.begin(SCREEN_ADDRESS, false)) {
+      #ifdef DEBUG
+        Serial.println(F("SH1106 allocation failed"));
+      #endif
+      for (;;)
       ;  // Don't proceed, loop forever
-  } else {
-#ifdef DEBUG
-    Serial.println(F("OLED Initiated"));
-#endif
-  }
-#endif //DISPLAY_OLED130_I2C
+    }
+    else
+    {
+    #ifdef DEBUG
+      Serial.println(F("OLED130 Initiated"));
+    #endif
+    }
+  #endif //DISPLAY_OLED130_I2C
 
   oled.setTextColor(1, 0);
 
   Ethernet.init(EthCSPin);
 
-  oledShow((const char*) F("INIT ETH"), 0, smallText, firstLine, showAttributeFalse);
+  oledShow("INIT ETH", 0, smallText, firstLine, showAttributeFalse);
 
   // start the Ethernet connection:
-  if (Ethernet.begin(mac) == 0) {
-#ifdef DEBUG
-    Serial.println(F("Failed to configure Ethernet using DHCP"));
-#endif
-    // Check for Ethernet hardware present
-    if (Ethernet.hardwareStatus() == EthernetNoHardware) {
-#ifdef DEBUG
+  #ifdef STATIC_IP
+   Ethernet.begin(mac, myIP, myDns, myGateway, mySubnet);     // Configure using IP address defined in EthConfig.h 
+  #else
+    if (Ethernet.begin(mac) == 0) {
+      #ifdef DEBUG
+        Serial.println(F("Failed to configure Ethernet using DHCP"));
+      #endif
+    }
+  #endif //STATIC-IP
+  // Check for Ethernet Status 
+  if (Ethernet.hardwareStatus() == EthernetNoHardware) {
+    #ifdef DEBUG
       Serial.println(F("Ethernet shield was not found"));
-#endif
-      while (true) {
-        delay(1);  // do nothing, no point running without Ethernet hardware
-      }
+    #endif
+    while (true) {
+      delay(1);  // do nothing, no point running without Ethernet hardware
     }
-    if (Ethernet.linkStatus() == LinkOFF) {
-#ifdef DEBUG
-      Serial.println(F("Ethernet cable is not connected."));
-#endif
-    }
-    // try to configure using IP address instead of DHCP:
-    Ethernet.begin(mac, myIP, myDns, myGateway);
-  } else {
-    //oledShow((const char*) (String(myIP[0]) + "." + String(myIP[1]) + "." + String(myIP[2]) + "." + String(myIP[3])).c_str(), 0, smallText, firstLine, showAttributeFalse); 
   }
+  if (Ethernet.linkStatus() == LinkOFF) {
+    #ifdef DEBUG
+      Serial.println(F("Ethernet cable is not connected."));
+    #endif
+  }
+  #ifdef DEBUG
+    Serial.println(Ethernet.localIP());
+  #endif
 
-  // give the Ethernet shield a second to initialize:
-  delay(1000);
-  oledShow((const char*) F("connecting FRStackPC"), 0, smallText, firstLine, showAttributeFalse);
-  delay(1000);  //give some time to look at the display actions
+  IPAddress ip = Ethernet.localIP();
 
-  // if you get a connection, report back via OLED:
-  if (client.connect(FRStackPC, FRStackPort)) {
-    // oledShow(httpHost, 0, smallText, firstLine, showAttributeFalse);
+  strcpy(showBuffer, (String(ip[0]) + "." + String(ip[1]) + "." + String(ip[2]) + "." + String(ip[3])).c_str());
+  oledShow(showBuffer,0, smallText, firstLine, showAttributeFalse);
+
+  delay(1000);  // give the Ethernet shield a second to initialize:
+
+  oledShow("connecting FRStackPC", 0, smallText, firstLine, showAttributeFalse);
+  delay(1000);  //give the user some time to look at the display
+
+
+  if (client.connect(FRStackPC, FRStackPort)) {   // if you get a connection, report back via OLED:
+    oledShow(httpHost, 0, smallText, firstLine, showAttributeFalse);
     delay(500);
     // Init some FRStack parameters to their default values
-    oledShow((const char*) F("Set default values"), 0, smallText, firstLine, showAttributeFalse);
+    oledShow("Set default values", 0, smallText, firstLine, showAttributeFalse);
     sendFRStackMsg(0, 0, FRStackCmdDefaultValue[0]);  //Volume
     delay(500);
     sendFRStackMsg(0, 3, FRStackCmdDefaultValue[3]);  //AGCT
     delay(500);
-  } else {
-    // if you didn't get a connection to the server:
-    oledShow((const char*) F("Connection failed"), 0, smallText, firstLine, showAttributeFalse);
+  }
+  else {
+    oledShow("Connection failed", 0, smallText, firstLine, showAttributeFalse);
     delay(5000);
   }
-  oledShow(buildBanner(), 0, smallText, firstLine, showAttributeFalse);
-  //oledShow((String(CALL_SIGN) + " " + String(CODE_VERSION) + " " + String(CODE_DATE)).c_str(), 0, smallText, firstLine, showAttributeFalse);
+  strcpy (showBuffer, CALL_SIGN);
+  strcat (showBuffer, " ");
+  strcat (showBuffer, CODE_VERSION);
+  strcat (showBuffer, " ");
+  strcat (showBuffer, CODE_DATE);
+  oledShow(showBuffer, 0, smallText, firstLine, showAttributeFalse);
+  
   //Buttons handlers
+  #ifdef DEBUG
+    Serial.println(F("ButtonHandler1 created"));
+  #endif
   enc1Btn.onPress(pressHandler1)
     .onDoublePress(pressHandler1)      // default timeout
     .onPressFor(pressHandler1, 1000);  // custom timeout for 1 second
-#if (ENCODERS > 1)
-  enc2Btn.onPress(pressHandler2)
-    .onDoublePress(pressHandler2)      // default timeout
-    .onPressFor(pressHandler2, 1000);  // custom timeout for 1 second
-#endif // ENCODERS > 1
-#if (ENCODERS > 2)
-  enc3Btn.onPress(pressHandler3)
-    .onDoublePress(pressHandler3)      // default timeout
-    .onPressFor(pressHandler3, 1000);  // custom timeout for 1 second
-#endif // ENCODERS > 2
-#if (ENCODERS > 3)
-  enc4Btn.onPress(pressHandler4)
-    .onDoublePress(pressHandler4)      // default timeout
-    .onPressFor(pressHandler4, 1000);  // custom timeout for 1 second
-#endif // ENCODERS > 3
+
+  #if (ENCODERS > 1)
+    #ifdef DEBUG
+      Serial.println(F("ButtonHandler1 created"));
+    #endif
+    enc2Btn.onPress(pressHandler2)
+      .onDoublePress(pressHandler2)      // default timeout
+      .onPressFor(pressHandler2, 1000);  // custom timeout for 1 second
+  #endif // ENCODERS > 1
+  #if (ENCODERS > 2)
+    #ifdef DEBUG
+      Serial.println(F("ButtonHandler3 created"));
+    #endif
+    enc3Btn.onPress(pressHandler3)
+      .onDoublePress(pressHandler3)      // default timeout
+      .onPressFor(pressHandler3, 1000);  // custom timeout for 1 second
+  #endif // ENCODERS > 2
+  #if (ENCODERS > 3)
+    #ifdef DEBUG
+      Serial.println(F("ButtonHandler4 created"));
+    #endif
+    enc4Btn.onPress(pressHandler4)
+      .onDoublePress(pressHandler4)      // default timeout
+      .onPressFor(pressHandler4, 1000);  // custom timeout for 1 second
+  #endif // ENCODERS > 3
 }
 // End setup()
 
 void loop() {
-
   //Check for button press
   enc1Btn.read();
-#if (ENCODERS > 1)
-  enc2Btn.read();
-#endif
-#if (ENCODERS > 2)
-  enc3Btn.read();
-#endif
-#if (ENCODERS > 3)
-  enc4Btn.read();
-#endif
 
   // Check for encoders movement
   encChanged = false;
-
-  if ((counter = enc1.readAndReset()) != 0) {
+  static int oldcounter = 0;
+    counter = enc1.read();
+    if (counter != oldcounter) {
+    //      if ((counter = enc1.readAndReset()) != 0) {
+    Serial.print(counter);
     //if((counter = enc1.get_diffPosition()) != 0) {
     encCounter = counter / ENCODERS_STEPS;
+    Serial.print("\t");
+    Serial.println(encCounter);
     msgIndex = searchMesageIndex(1, enc1BtnStatus);
+    oldcounter=counter;
     encChanged = true;
   }
 
-#if (ENCODERS > 1)
-  if ((counter = enc2.readAndReset()) != 0) {
-    //  if((counter = enc2.get_diffPosition()) != 0) {
-    encCounter = counter;
-    msgIndex = searchMesageIndex(2, enc2BtnStatus);
-    encChanged = true;
-  }
-#endif
+  #if (ENCODERS > 1)
+    enc2Btn.read();
+    if ((counter = enc2.readAndReset()) != 0) {
+      //  if((counter = enc2.get_diffPosition()) != 0) {
+      encCounter = counter;
+      msgIndex = searchMesageIndex(2, enc2BtnStatus);
+      encChanged = true;
+    }
+  #endif
 
-#if (ENCODERS > 2)
-  if ((counter = enc3.readAndReset()) != 0) {
-    //  if((counter = enc3.get_diffPosition()) != 0) {
-    encCounter = counter / ENCODERS_STEPS;
-    msgIndex = searchMesageIndex(3, enc3BtnStatus);
-    encChanged = true;
+  #if (ENCODERS > 2)
+    enc3Btn.read();
+    if ((counter = enc3.readAndReset()) != 0) {
+      //  if((counter = enc3.get_diffPosition()) != 0) {
+      encCounter = counter / ENCODERS_STEPS;
+      msgIndex = searchMesageIndex(3, enc3BtnStatus);
+      encChanged = true;
   }
-#endif
+  #endif
 
-#if (ENCODERS > 3)
-  if ((counter = enc4.readAndReset()) != 0) {
-    //  if((counter = enc4.get_diffPosition()) != 0) {
-    encCounter = counter / ENCODERS_STEPS;
-    msgIndex = searchMesageIndex(4, enc4BtnStatus);
-    encChanged = true;
-  }
-#endif
+  #if (ENCODERS > 3)
+    enc4Btn.read();
+    if ((counter = enc4.readAndReset()) != 0) {
+      //  if((counter = enc4.get_diffPosition()) != 0) {
+      encCounter = counter / ENCODERS_STEPS;
+      msgIndex = searchMesageIndex(4, enc4BtnStatus);
+      encChanged = true;
+    }
+  #endif
 
-if (encChanged) {
-  encValue = FRStackLastValue[msgIndex] + (encCounter * FRStackCmdSteps[msgIndex]);
-  if (encValue >= FRStackCmdHighLimit[msgIndex]) {
-    encValue = FRStackCmdHighLimit[msgIndex];
-  }
-  if (encValue <= FRStackCmdLowLimit[msgIndex]) {
-    encValue = FRStackCmdLowLimit[msgIndex];
-  }
-  sendFRStackMsg(0, msgIndex, encValue);
-  oledShow(FRStackCmdLabel[msgIndex], encValue, medText, firstLine, showAttributeTrue);
-  FRStackLastValue[msgIndex] = encValue;
+  if (encChanged) {
+    encValue = FRStackLastValue[msgIndex] + (encCounter * FRStackCmdSteps[msgIndex]);
+    if (encValue >= FRStackCmdHighLimit[msgIndex]) {
+      encValue = FRStackCmdHighLimit[msgIndex];
+    }
+    if (encValue <= FRStackCmdLowLimit[msgIndex]) {
+      encValue = FRStackCmdLowLimit[msgIndex];
+    }
+    sendFRStackMsg(0, msgIndex, encValue);
+    oledShow(FRStackCmdLabel[msgIndex], encValue, medText, firstLine, showAttributeTrue);
+    FRStackLastValue[msgIndex] = encValue;
   }
 }
+// End loop()
 
 // ------------------- FUNCTIONS ---------------------
-// Build the banner as a pointer to chars
-char * buildBanner () {
-  static char TempString [30];
-  strcpy (TempString, CALL_SIGN);
-  strcat (TempString, (const char*)(" "));
-  strcat (TempString, CODE_VERSION);
-  strcat (TempString, (const char*)(" "));
-  strcat (TempString, CODE_DATE);
-  return TempString;
-}
+
 // Search Message index from Encoder, Push Status
 byte searchMesageIndex(byte EncoderID, byte EncoderPush) {
   for (byte i = 0; i < ArraysSize; i++) {
@@ -327,89 +355,84 @@ byte searchMesageIndex(byte EncoderID, byte EncoderPush) {
       return i;
     }
   }
-#ifdef DEBUG
-  Serial.print (String(EncoderID));
-  Serial.print(F("\t"));
-  Serial.print (String(EncoderPush));
-  Serial.print(F("\t"));
-  Serial.println(F("Message index error"));
-#endif
+  #ifdef DEBUG
+    Serial.print (String(EncoderID));
+    Serial.print(F("\t"));
+    Serial.print (String(EncoderPush));
+    Serial.print(F("\t"));
+    Serial.println(F("Message index error"));
+  #endif
   return 0;
 }  //End searchMessageIndex
 
 // FRStack API Call
 void sendFRStackMsg(byte messageType, byte messageIndex, int functionValue) {
-  client.connect(FRStackPC, FRStackPort);
-  char clientMsg [50] PROGMEM = "GET ";
-  if (messageType == 0) {
-    strcat (clientMsg, FRStackCmdString[messageIndex]); //Standard message
-    strcat (clientMsg, String(functionValue).c_str());
-    //FRStackMsg = (httpPre + FRStackCmdString[messageIndex] + String(functionValue) + httpPos);
-  }
-  if (messageType == 1) {           //Togle message
-    strcat (clientMsg, FRStackCmdTogleString[messageIndex]);
-    if (functionValue != -32768) {  // Togle message with number as parameter
-    strcat (clientMsg, String(functionValue).c_str());
-   //   FRStackMsg = (httpPre + FRStackCmdTogleString[messageIndex] + String(functionValue) + httpPos);
+  char clientMsg [50] = "GET ";
+  if (messageType == 0)  //Standard message
+    {
+      strcat (clientMsg, FRStackCmdString[messageIndex]);
+      strcat (clientMsg, String(functionValue).c_str());
     }
-    // else {  //Togle message with string asd part of the message
-    //    strcat (clientMsg, FRStackCmdString[messageIndex]);
-    //  FRStackMsg = (httpPre + FRStackCmdTogleString[messageIndex] + httpPos);
-    //}
+  if (messageType == 1) //Togle message
+   {           
+     strcat (clientMsg, FRStackCmdTogleString[messageIndex]);
+     if (functionValue != -32768) {  // Togle message with number as parameter
+       strcat (clientMsg, String(functionValue).c_str());
+      }
   }
-  strcat (clientMsg, " HTTP/1.1"); 
+  strcat (clientMsg, " HTTP/1.1");
+  client.connect(FRStackPC, FRStackPort);
   client.println(clientMsg);
-#ifdef DEBUG
-  Serial.println(clientMsg);
-#endif
   client.println(httpHost);
   client.println(F("Connection: close"));
   client.println();
   client.flush();
+  #ifdef DEBUG
+    Serial.println(clientMsg);
+  #endif
 }  //End sendFRStackMsg
 
 //Display Functions on OLED
-//void oledShow(String messageText, int functionValue, int textSize, int lineNumber, bool showAttribute) {
-void oledShow(const char *messageText, int functionValue, textSize textSize, displayLines lineNumber, showAttribute showAttribute) {
+void oledShow(const char *messageText, int functionValue, byte textSize, displayLines lineNumber, showAttribute showAttribute) {
+  char messageDisplay[30];
+  #ifdef DISPLAY_OLED091_I2C
+    int CursorY = 0;
+  #endif
+  #ifdef DISPLAY_OLED130_I2C
+    int CursorY = 4;
+  #endif
   oled.clearDisplay();  // Always do this everytime there is something to show
-char messageDisplay [30] PROGMEM;
-#ifdef DISPLAY_OLED091_I2C
-  int CursorY = 0;
-#endif
-#ifdef DISPLAY_OLED130_I2C
-  int CursorY = 4;
-#endif
   oled.setCursor(11, CursorY);
   oled.setTextSize(2);
   oled.print(F("MAESTRINO"));
-  strcpy_P(messageDisplay, messageText);
+  strcpy(messageDisplay, messageText);
   if (functionValue == -32768) {
-    strcat(messageDisplay, (const char*) F(" Tog"));
-    //   messageText = messageText + " Tog";
+    strcat(messageDisplay, " Tog");
   }
-  if (showAttributeTrue) {
-    strcat(messageDisplay, (const char*) F(" "));
+  if (showAttribute) {
+    strcat(messageDisplay, " ");
     strcat(messageDisplay, String(functionValue).c_str());
-    //  messageText = messageText + " " + String(functionValue);
   }
-
   int CursorX = (128 - (strlen(messageDisplay) * 6 * textSize)) / 2;
-    //int CursorX = (128 - (messageText.length()*6*textSize)) / 2;
-
   if (CursorX < 0) { CursorX = 0; }
+  #ifdef DEBUG
+    Serial.print (messageDisplay);
+    Serial.print(F("\t lenght: "));
+    Serial.print (String(strlen(messageDisplay)));
+    Serial.print(F("\t CursorX: "));
+    Serial.println(String(CursorX));
+  #endif
+  #ifdef DISPLAY_OLED091_I2C
+    if (textSize == 1) { CursorY = 20; }
+    if (textSize == 2) { CursorY = 16; }
+    if (textSize == 3) { CursorY = 0; }
+  #endif
+  #ifdef DISPLAY_OLED130_I2C
+    if (textSize == 1) { CursorY = 36; }
+    if (textSize == 2) { CursorY = 30; }
+    if (textSize == 3) { CursorY = 20; }
+  #endif
   oled.setTextSize(textSize);
-
-#ifdef DISPLAY_OLED091_I2C
-  if (textSize == smallText) { CursorY = 20; }
-  if (textSize == medText) { CursorY = 16; }
-  if (textSize == bigText) { CursorY = 0; }
-#endif
-#ifdef DISPLAY_OLED130_I2C
-  if (textSize == smallText) { CursorY = 36; }
-  if (textSize == medText) { CursorY = 30; }
-  if (textSize == bigText) { CursorY = 20; }
-#endif
-
   oled.setCursor(CursorX, CursorY);
   oled.print(messageDisplay);
   oled.display();
@@ -431,7 +454,7 @@ void pressHandler1(BfButton *enc1Btn, BfButton::press_pattern_t pattern) {
     case BfButton::DOUBLE_PRESS:  // If managed, turn function On or Off
       msgIndex = searchMesageIndex(1, enc1BtnStatus);
       sendFRStackMsg(1, msgIndex, FRStackCmdTogleParameter[msgIndex]);
-      oledShow(FRStackCmdLabel[msgIndex], -32768, medText, firstLine, showAttributeFalse);
+      oledShow(FRStackCmdLabel[msgIndex], -32768, 2, firstLine, showAttributeFalse);
       break;
 
     case BfButton::LONG_PRESS:  // Send function default value
@@ -498,8 +521,8 @@ void pressHandler3(BfButton *enc3Btn, BfButton::press_pattern_t pattern) {
       oledShow(FRStackCmdLabel[msgIndex], FRStackLastValue[msgIndex], medText, firstLine, showAttributeTrue);
       break;
   }
-}  //End pressHandler3
-#endif
+} 
+#endif  //End pressHandler3
 
 #if ENCODERS > 3
 void pressHandler4(BfButton *enc4Btn, BfButton::press_pattern_t pattern) {
@@ -527,5 +550,5 @@ void pressHandler4(BfButton *enc4Btn, BfButton::press_pattern_t pattern) {
       oledShow(FRStackCmdLabel[msgIndex], FRStackLastValue[msgIndex], medText, firstLine, showAttributeTrue);
       break;
   }
-}  //End pressHandler4
-#endif
+}  
+#endif //End pressHandler4
