@@ -8,10 +8,10 @@ const char CALL_SIGN[6] = "N5NHJ";
 // #define DUE
 // #define LEONARDO_ETH
 
-// #define DEBUG
+#define DEBUG
 
 // #define DISPLAY_OLED091_I2C //0.91 OLED I2C Display Module IIC 0.91 128x32 inch I2C SSD1306 LED DC Display Module Blue I2C LCD 128x32 Screen Driver Compatible with OLED 3.3V~5V
-#define DISPLAY_OLED130_I2C  //HiLetgo 1.3" IIC I2C Serial 128x64 SSH1106 SSD1306 OLED LCD Display LCD Module for Arduino AVR PIC STM32
+ #define DISPLAY_OLED130_I2C  //HiLetgo 1.3" IIC I2C Serial 128x64 SSH1106 SSD1306 OLED LCD Display LCD Module for Arduino AVR PIC STM32
 
 // Generic libraries
 #include <SPI.h>
@@ -278,18 +278,20 @@ void loop() {
   enc1Btn.read();
 
   // Check for encoders movement
-  encChanged = false;
-  static int oldcounter = 0;
-    counter = enc1.read();
-    if (counter != oldcounter) {
+  encChanged = false; // move out of the main loop
+  static int oldcounter[4] = {0,0,0,0}; // move out of the main loop
+  counter = enc1.read()/ENCODERS_STEPS;
+  int diff = counter - oldcounter[0];
+  if (diff) {
     //      if ((counter = enc1.readAndReset()) != 0) {
-    Serial.print(counter);
+      Serial.print(F("diff: "));
+      Serial.println(diff);
     //if((counter = enc1.get_diffPosition()) != 0) {
-    encCounter = counter / ENCODERS_STEPS;
-    Serial.print("\t");
-    Serial.println(encCounter);
+    // encCounter = counter / ENCODERS_STEPS;
+    // Serial.print("\t");
+    // Serial.println(encCounter);
     msgIndex = searchMesageIndex(1, enc1BtnStatus);
-    oldcounter=counter;
+    oldcounter[0]=counter;
     encChanged = true;
   }
 
@@ -324,12 +326,15 @@ void loop() {
   #endif
 
   if (encChanged) {
-    encValue = FRStackLastValue[msgIndex] + (encCounter * FRStackCmdSteps[msgIndex]);
+    encValue = FRStackLastValue[msgIndex] + (diff * FRStackCmdSteps[msgIndex]);
+    // encValue = FRStackCmdDefaultValue[msgIndex] + (oldcounter[0] * FRStackCmdSteps[msgIndex]);
     if (encValue >= FRStackCmdHighLimit[msgIndex]) {
       encValue = FRStackCmdHighLimit[msgIndex];
+      // enc1.write(oldcounter[0]);
     }
     if (encValue <= FRStackCmdLowLimit[msgIndex]) {
       encValue = FRStackCmdLowLimit[msgIndex];
+      // enc1.write(oldcounter[0]);
     }
     sendFRStackMsg(0, msgIndex, encValue);
     oledShow(FRStackCmdLabel[msgIndex], encValue, medText, firstLine, showAttributeTrue);
